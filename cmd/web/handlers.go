@@ -5,12 +5,11 @@ import(
 	"strconv"
 	"fmt"
 	"html/template"
-	"log"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.notFound(w)
 		return
 	}
 
@@ -23,31 +22,32 @@ func home(w http.ResponseWriter, r *http.Request) {
 	template, err := template.ParseFiles(templateFiles...)
 
 	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		app.errorLogger.Print(err.Error())
+		app.serverError(w, err)
 		return
 	}
 
 	err = template.ExecuteTemplate(w,"base", nil)
 	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		app.errorLogger.Print(err.Error())
+		app.serverError(w, err)
 		return
 	}
 
 }
 
-func snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *application)snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
-		http.NotFound(w, r)
+		app.errorLogger.Print(err.Error())
+		app.notFound(w)
 		return
 	}
 	// w.Write([]byte("Snippet view"))
 	fmt.Fprintf(w, "To view snippet with id: %d - ", id)
 }
 
-func createSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application)createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 
@@ -55,7 +55,7 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 		// w.WriteHeader(405)
 		// w.Write([]byte("Method not allowed"))
 		// or
-		http.Error(w, "Method not allowed", 405)
+		app.clientError(w, http.StatusMethodNotAllowed)
 		
 		return
 	}
